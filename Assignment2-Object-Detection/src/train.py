@@ -87,8 +87,8 @@ train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_
 ###################################################################
 # TODO: Please fill the codes below to initialize the validation dataset
 ##################################################################
-val_dataset = None
-val_loader = None
+val_dataset = Dataset(args, split='val', transform=[transforms.ToTensor()])
+val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False, num_workers=4)
 ##################################################################
 
 print(f'NUMBER OF DATA SAMPLES: {len(train_dataset)}')
@@ -117,8 +117,8 @@ for epoch in range(args.num_epochs):
         # TODO: Please fill the codes here to complete the gradient backward
         ##################################################################
         optimizer.zero_grad()
-        pass
-
+        loss.backward()
+        optimizer.step()
         ##################################################################
 
         mem = '%.3gG' % (torch.cuda.memory_reserved() / 1E9 if torch.cuda.is_available() else 0)

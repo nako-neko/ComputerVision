@@ -81,9 +81,13 @@ class yololoss(nn.Module):
             # TODO: Please fill the codes below to calculate the iou of the two boxes and substite the "?"
             # Note: return variable: iou_res (self.B, 1)
             ##################################################################
-            pass
-
-            iou_res = self.compute_iou("?", "?")
+            # box1_xyxy are the predicted boxes of (B, 4), box2_xyxy is the ground-truth box of (1, 4)
+            # but it has been viewed as (B, 4) (or will rely on broadcasting)
+            # box2 represents the single ground-truth for this grid cell
+            # box1 contains the B predicted boxes for that cell
+            
+            # compute_iou needs (N, 4) and (M, 4) as inputs
+            iou_res = self.compute_iou(box1_xyxy, box2_xyxy)
             ##################################################################
             max_iou, max_index = iou_res.max(0)
             max_index = max_index.data.cuda()
@@ -107,10 +111,18 @@ class yololoss(nn.Module):
         ###################################################################
         # TODO: Please fill the codes below to calculate the location loss
         ##################################################################
-        pass
+        # box_pred_response: [x, y, w, h, c]
+        # box_target_response: [x, y, w, h, c]
         
-        loc_loss = 0
-
+        # x, y loss
+        loc_loss_xy = F.mse_loss(box_pred_response[:, :2], box_target_response[:, :2], reduction='sum')
+        
+        # w, h loss
+        pred_wh = torch.sqrt(torch.abs(box_pred_response[:, 2:4]) + 1e-6) # add 1e-6 to prevent gradient explosion
+        target_wh = torch.sqrt(box_target_response[:, 2:4])
+        loc_loss_wh = F.mse_loss(pred_wh, target_wh, reduction='sum')
+        
+        loc_loss = loc_loss_xy + loc_loss_wh
         ##################################################################
         
         """Compute the 3rd Term: IOU loss for boxes containing the objects"""
@@ -121,10 +133,14 @@ class yololoss(nn.Module):
         ###################################################################
         # TODO: Please fill the codes below to calculate the Not Response Loss
         ##################################################################
-        pass
-
-        not_response_loss = 0
-
+        # 获取对应 mask 的预测值和目标值（目标值通常置信度为0，因为该框不负责预测）
+        box_pred_not_response = box_pred[coo_not_response_mask].view(-1, 5)
+        box_target_not_response = box_target[coo_not_response_mask].view(-1, 5)
+        
+        # 我们只关心置信度 confidence (index 4) 的损失，目标置信度设为 0
+        # 注意：原始 YOLO 论文中这里目标也是 0，但在部分实现中可能设为 IoU。
+        # 根据 loss 公式第4项，这里是 (C_i - \hat{C}_i)^2，\hat{C}_i 对于非负责框通常为0。
+        not_response_loss = F.mse_loss(box_pred_not_response[:, 4], torch.zeros_like(box_pred_not_response[:, 4]), reduction='sum')
         ##################################################################
         
         """Compute the 4th Term (Part II): No Object Contain Loss"""

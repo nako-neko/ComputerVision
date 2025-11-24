@@ -19,8 +19,10 @@ class ResNet(nn.Module):
         ###################################################################
         # TODO: Please fill the codes below with the *self._make_layer()* function
         ##################################################################
-        pass
-
+        self.layer1 = self._make_layer(block, 64, layers[0])
+        self.layer2 = self._make_layer(block, 128, layers[1], stride=2)
+        self.layer3 = self._make_layer(block, 256, layers[2], stride=2)
+        self.layer4 = self._make_layer(block, 512, layers[3], stride=2)
         ##################################################################
 
 
@@ -30,7 +32,8 @@ class ResNet(nn.Module):
         # change ResNet to suit the detection requirement
         yolo_S, yolo_B, yolo_C = args.yolo_S, args.yolo_B, args.yolo_C
 
-        self.det_head = self._make_detection_head(in_channels="?", out_channels="?")
+        # ResNet50 output is 2048 channels. Head output is B*5 + C
+        self.det_head = self._make_detection_head(in_channels=2048, out_channels=yolo_B * 5 + yolo_C)
         ##################################################################
                 
         def _weights_init(m):
@@ -77,8 +80,10 @@ class ResNet(nn.Module):
         ###################################################################
         # TODO: Please fill the codes below
         ##################################################################
-        pass
-
+        x = self.layer1(x)
+        x = self.layer2(x)
+        x = self.layer3(x)
+        x = self.layer4(x)
         ##################################################################
 
         x = self.det_head(x)

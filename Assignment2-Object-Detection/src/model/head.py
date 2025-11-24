@@ -18,8 +18,9 @@ class mmdetection_head(nn.Module):
         #####################################################################
         self.downsample = nn.Sequential()
         if do_downsample or stride != 1 or in_planes != self.expansion * planes:
-            pass
-
+            self.downsample = nn.Sequential(
+                nn.Conv2d(in_planes, self.expansion * planes, kernel_size=1, stride=stride, bias=True)
+            )
         ##################################################################
 
     def forward(self, x):

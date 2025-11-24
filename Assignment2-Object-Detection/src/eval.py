@@ -92,9 +92,11 @@ class Evaluation:
             ###################################################################
             # TODO: Please fill the codes to compute recall and precision
             ##################################################################
-            recall = 0.
-            precision = 0.
-
+            fp_cumsum = np.cumsum(fp)
+            tp_cumsum = np.cumsum(tp)
+            
+            recall = tp_cumsum / float(npos)
+            precision = tp_cumsum / np.maximum(tp_cumsum + fp_cumsum, np.finfo(np.float64).eps)
             ##################################################################
             ap = self.compute_ap(recall, precision)
 

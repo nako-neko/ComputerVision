@@ -18,8 +18,44 @@ def non_maximum_suppression(boxes, scores, threshold=0.5):
     # TODO: Please fill the codes below to calculate the iou of the two boxes
     # Hint: You can refer to the nms part implemented in loss.py but the input shapes are different here
     ##################################################################
-    pass
-
+    # 排序，按置信度从高到低
+    order = scores.argsort(descending=True)
+    keep = []
+    
+    while order.numel() > 0:
+        i = order[0]
+        keep.append(i)
+        
+        if order.numel() == 1:
+            break
+            
+        # 计算当前框 i 与剩余框的 IoU
+        # boxes: [x1, y1, x2, y2]
+        curr_box = boxes[i]
+        next_boxes = boxes[order[1:]]
+        
+        # Intersection
+        xx1 = torch.max(curr_box[0], next_boxes[:, 0])
+        yy1 = torch.max(curr_box[1], next_boxes[:, 1])
+        xx2 = torch.min(curr_box[2], next_boxes[:, 2])
+        yy2 = torch.min(curr_box[3], next_boxes[:, 3])
+        
+        w = torch.clamp(xx2 - xx1, min=0.0)
+        h = torch.clamp(yy2 - yy1, min=0.0)
+        inter = w * h
+        
+        # Union
+        area_curr = (curr_box[2] - curr_box[0]) * (curr_box[3] - curr_box[1])
+        area_next = (next_boxes[:, 2] - next_boxes[:, 0]) * (next_boxes[:, 3] - next_boxes[:, 1])
+        union = area_curr + area_next - inter
+        
+        iou = inter / (union + 1e-6)
+        
+        # 保留 IoU 小于阈值的框（即不重叠的框）
+        inds = torch.where(iou <= threshold)[0]
+        order = order[inds + 1] # +1 因为我们切片去掉了第一个元素
+        
+    return torch.LongTensor(keep)
     ##################################################################
 
 
@@ -85,7 +121,10 @@ def inference(args, model, img_path):
     ###################################################################
     # TODO: Please fill the codes here to do the image normalization
     ##################################################################
-    pass
+    # mean 和 std 已经在上面定义了
+    # 此时 img 是 numpy array (H, W, 3), RGB 格式 (前面已经转了)
+    img = img.astype(np.float32)
+    img = (img - mean) / std
     ##################################################################
 
     transform = transforms.Compose([transforms.ToTensor(), ])
