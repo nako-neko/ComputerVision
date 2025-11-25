@@ -11,142 +11,143 @@ from data.dataset import Dataset
 from model.ADdetector import resnet50
 from utils.loss import yololoss
 
-# parse args
-parser = argparse.ArgumentParser()
-parser.add_argument('--yolo_S', default=14, type=int, help='YOLO grid num')
-parser.add_argument('--yolo_B', default=2, type=int, help='YOLO box num')
-parser.add_argument('--yolo_C', default=4, type=int, help='detection class num')
+if __name__ == '__main__':
+    # parse args
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--yolo_S', default=14, type=int, help='YOLO grid num')
+    parser.add_argument('--yolo_B', default=2, type=int, help='YOLO box num')
+    parser.add_argument('--yolo_C', default=4, type=int, help='detection class num')
 
-parser.add_argument('--num_epochs', default=10, type=int, help='number of epochs')
-parser.add_argument('--batch_size', default=12, type=int, help='batch size')
-parser.add_argument('--learning_rate', default=1e-5, type=float, help='learning rate')
+    parser.add_argument('--num_epochs', default=10, type=int, help='number of epochs')
+    parser.add_argument('--batch_size', default=12, type=int, help='batch size')
+    parser.add_argument('--learning_rate', default=1e-5, type=float, help='learning rate')
 
-parser.add_argument('--seed', default=666, type=int, help='random seed')
-parser.add_argument('--dataset_root', default='./dataset', type=str, help='dataset root')
-parser.add_argument('--output_dir', default='checkpoints', type=str, help='output directory')
+    parser.add_argument('--seed', default=666, type=int, help='random seed')
+    parser.add_argument('--dataset_root', default='./dataset', type=str, help='dataset root')
+    parser.add_argument('--output_dir', default='checkpoints', type=str, help='output directory')
 
-parser.add_argument('--l_coord', default=5., type=float, help='hyper parameter for localization loss')
-parser.add_argument('--l_noobj', default=0.5, type=float, help='hyper parameter for no object loss')
-parser.add_argument('--image_size', default=448, type=int, help='image size')
-args = parser.parse_args()
-
-
-def load_pretrained(net):
-    resnet = torchvision.models.resnet50(pretrained=True)
-    resnet_state_dict = resnet.state_dict()
-
-    net_dict = net.state_dict()
-    for k in resnet_state_dict.keys():
-        if k in net_dict.keys() and not k.startswith('fc'):
-            net_dict[k] = resnet_state_dict[k]
-    net.load_state_dict(net_dict)
+    parser.add_argument('--l_coord', default=5., type=float, help='hyper parameter for localization loss')
+    parser.add_argument('--l_noobj', default=0.5, type=float, help='hyper parameter for no object loss')
+    parser.add_argument('--image_size', default=448, type=int, help='image size')
+    args = parser.parse_args()
 
 
-####################################################################
-# Environment Setting
-# We suggest using only one GPU, or you should change the codes about model saving and loading
+    def load_pretrained(net):
+        resnet = torchvision.models.resnet50(pretrained=True)
+        resnet_state_dict = resnet.state_dict()
 
-# os.environ["CUDA_VISIBLE_DEVICES"] = "2"
+        net_dict = net.state_dict()
+        for k in resnet_state_dict.keys():
+            if k in net_dict.keys() and not k.startswith('fc'):
+                net_dict[k] = resnet_state_dict[k]
+        net.load_state_dict(net_dict)
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-print('NUMBER OF CUDA DEVICES:', torch.cuda.device_count())
 
-# Other settings
-args.load_pretrain = True
-print(args)
+    ####################################################################
+    # Environment Setting
+    # We suggest using only one GPU, or you should change the codes about model saving and loading
 
-output_dir = args.output_dir
-if not os.path.exists(output_dir):
-    os.makedirs(output_dir)
+    # os.environ["CUDA_VISIBLE_DEVICES"] = "2"
 
-np.random.seed(args.seed)
-torch.manual_seed(args.seed)
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    print('NUMBER OF CUDA DEVICES:', torch.cuda.device_count())
 
-####################################################################
-criterion = yololoss(args, l_coord=args.l_coord, l_noobj=args.l_noobj)
+    # Other settings
+    args.load_pretrain = True
+    print(args)
 
-ad_detector = resnet50(args=args)
-if args.load_pretrain:
-    load_pretrained(ad_detector)
-ad_detector = ad_detector.to(device)
+    output_dir = args.output_dir
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
 
-####################################################################
-# Multiple GPUs if needed
-# if torch.cuda.device_count() > 1:
-#     ad_detector = torch.nn.DataParallel(ad_detector)
+    np.random.seed(args.seed)
+    torch.manual_seed(args.seed)
 
-ad_detector.train()
+    ####################################################################
+    criterion = yololoss(args, l_coord=args.l_coord, l_noobj=args.l_noobj)
 
-# initialize optimizer
-optimizer = torch.optim.AdamW(ad_detector.parameters(), betas=(0.9, 0.999), lr=args.learning_rate)
+    ad_detector = resnet50(args=args)
+    if args.load_pretrain:
+        load_pretrained(ad_detector)
+    ad_detector = ad_detector.to(device)
 
-# initialize dataset
-train_dataset = Dataset(args, split='train', transform=[transforms.ToTensor()])
-train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=4)
+    ####################################################################
+    # Multiple GPUs if needed
+    # if torch.cuda.device_count() > 1:
+    #     ad_detector = torch.nn.DataParallel(ad_detector)
 
-###################################################################
-# TODO: Please fill the codes below to initialize the validation dataset
-##################################################################
-val_dataset = Dataset(args, split='val', transform=[transforms.ToTensor()])
-val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False, num_workers=4)
-##################################################################
-
-print(f'NUMBER OF DATA SAMPLES: {len(train_dataset)}')
-print(f'BATCH SIZE: {args.batch_size}')
-
-train_dict = dict(iter=[], loss=[])
-best_val_loss = np.inf
-
-for epoch in range(args.num_epochs):
     ad_detector.train()
 
-    # training
-    total_loss = 0.
-    print(('\n' + '%10s' * 3) % ('epoch', 'loss', 'gpu'))
-    progress_bar = tqdm.tqdm(enumerate(train_loader), total=len(train_loader))
-    for i, (images, target) in progress_bar:
-        images = images.to(device)
-        target = target.to(device)
+    # initialize optimizer
+    optimizer = torch.optim.AdamW(ad_detector.parameters(), betas=(0.9, 0.999), lr=args.learning_rate)
 
-        pred = ad_detector(images)
-        loss = criterion(pred, target)
+    # initialize dataset
+    train_dataset = Dataset(args, split='train', transform=[transforms.ToTensor()])
+    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=4)
 
-        total_loss += loss.data
+    ###################################################################
+    # TODO: Please fill the codes below to initialize the validation dataset
+    ##################################################################
+    val_dataset = Dataset(args, split='val', transform=[transforms.ToTensor()])
+    val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False, num_workers=4)
+    ##################################################################
 
-        ###################################################################
-        # TODO: Please fill the codes here to complete the gradient backward
-        ##################################################################
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
-        ##################################################################
+    print(f'NUMBER OF DATA SAMPLES: {len(train_dataset)}')
+    print(f'BATCH SIZE: {args.batch_size}')
 
-        mem = '%.3gG' % (torch.cuda.memory_reserved() / 1E9 if torch.cuda.is_available() else 0)
-        s = ('%10s' + '%10.4g' + '%10s') % ('%g/%g' % (epoch + 1, args.num_epochs), total_loss / (i + 1), mem)
-        progress_bar.set_description(s)
+    train_dict = dict(iter=[], loss=[])
+    best_val_loss = np.inf
 
-    # validation
-    validation_loss = 0.0
-    ad_detector.eval()
-    progress_bar = tqdm.tqdm(enumerate(val_loader), total=len(val_loader))
-    for i, (images, target) in progress_bar:
-        images = images.to(device)
-        target = target.to(device)
+    for epoch in range(args.num_epochs):
+        ad_detector.train()
 
-        prediction = ad_detector(images)
-        loss = criterion(prediction, target)
-        validation_loss += loss.data
-    validation_loss /= len(val_loader)
-    print("validation loss:", validation_loss.item())
+        # training
+        total_loss = 0.
+        print(('\n' + '%10s' * 3) % ('epoch', 'loss', 'gpu'))
+        progress_bar = tqdm.tqdm(enumerate(train_loader), total=len(train_loader))
+        for i, (images, target) in progress_bar:
+            images = images.to(device)
+            target = target.to(device)
 
-    if best_val_loss > validation_loss:
-        best_val_loss = validation_loss
+            pred = ad_detector(images)
+            loss = criterion(pred, target)
+
+            total_loss += loss.data
+
+            ###################################################################
+            # TODO: Please fill the codes here to complete the gradient backward
+            ##################################################################
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+            ##################################################################
+
+            mem = '%.3gG' % (torch.cuda.memory_reserved() / 1E9 if torch.cuda.is_available() else 0)
+            s = ('%10s' + '%10.4g' + '%10s') % ('%g/%g' % (epoch + 1, args.num_epochs), total_loss / (i + 1), mem)
+            progress_bar.set_description(s)
+
+        # validation
+        validation_loss = 0.0
+        ad_detector.eval()
+        progress_bar = tqdm.tqdm(enumerate(val_loader), total=len(val_loader))
+        for i, (images, target) in progress_bar:
+            images = images.to(device)
+            target = target.to(device)
+
+            prediction = ad_detector(images)
+            loss = criterion(prediction, target)
+            validation_loss += loss.data
+        validation_loss /= len(val_loader)
+        print("validation loss:", validation_loss.item())
+
+        if best_val_loss > validation_loss:
+            best_val_loss = validation_loss
+
+            save = {'state_dict': ad_detector.state_dict()}
+            torch.save(save, os.path.join(output_dir, 'ad_detector_best.pth'))
 
         save = {'state_dict': ad_detector.state_dict()}
-        torch.save(save, os.path.join(output_dir, 'ad_detector_best.pth'))
+        torch.save(save, os.path.join(output_dir, 'ad_detector_epoch_'+str(epoch+1)+'.pth'))
 
-    save = {'state_dict': ad_detector.state_dict()}
-    torch.save(save, os.path.join(output_dir, 'ad_detector_epoch_'+str(epoch+1)+'.pth'))
-
-    torch.cuda.empty_cache()
-    
+        torch.cuda.empty_cache()
+        

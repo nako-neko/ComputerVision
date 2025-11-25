@@ -87,7 +87,7 @@ class yololoss(nn.Module):
             # box1 contains the B predicted boxes for that cell
             
             # compute_iou needs (N, 4) and (M, 4) as inputs
-            iou_res = self.compute_iou(box1_xyxy, box2_xyxy)
+            iou_res = self.compute_iou(box1_xyxy[:, :4], box2_xyxy[:, :4])
             ##################################################################
             max_iou, max_index = iou_res.max(0)
             max_index = max_index.data.cuda()
