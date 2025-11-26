@@ -95,7 +95,7 @@ class Evaluation:
             fp_cumsum = np.cumsum(fp)
             tp_cumsum = np.cumsum(tp)
             
-            recall = tp_cumsum / float(npos)
+            recall = tp_cumsum / float(npos) if npos > 0 else np.zeros(len(tp_cumsum))
             precision = tp_cumsum / np.maximum(tp_cumsum + fp_cumsum, np.finfo(np.float64).eps)
             ##################################################################
             ap = self.compute_ap(recall, precision)

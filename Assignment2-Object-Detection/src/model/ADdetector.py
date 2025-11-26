@@ -32,8 +32,8 @@ class ResNet(nn.Module):
         # change ResNet to suit the detection requirement
         yolo_S, yolo_B, yolo_C = args.yolo_S, args.yolo_B, args.yolo_C
 
-        # ResNet50 output is 2048 channels. Head output is B*5 + C
-        self.det_head = self._make_detection_head(in_channels=2048, out_channels=yolo_B * 5 + yolo_C)
+        # ResNet50 output is 2048 channels (512 * block.expansion). Head output is B*5 + C
+        self.det_head = self._make_detection_head(in_channels=512 * block.expansion, out_channels=yolo_B * 5 + yolo_C)
         ##################################################################
                 
         def _weights_init(m):

@@ -66,7 +66,7 @@ class Bottleneck(nn.Module):
         self.bn1 = nn.BatchNorm2d(planes)
         
         # 3x3 conv, spatial convolution
-        self.conv2 = redefine_conv3x3(planes, planes, stride=stride)
+        self.conv2 = redefine_conv3x3(planes, planes, stride)
         self.bn2 = nn.BatchNorm2d(planes)
         
         # 1x1 conv, restore/expand channels
