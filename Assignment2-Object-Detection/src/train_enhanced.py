@@ -33,9 +33,9 @@ if __name__ == '__main__':
     parser.add_argument('--yolo_C', default=4, type=int, help='detection class num')
     
     parser.add_argument('--num_epochs', default=50, type=int, help='number of epochs')
-    parser.add_argument('--batch_size', default=16, type=int, help='batch size')
+    parser.add_argument('--batch_size', default=32, type=int, help='batch size')
     parser.add_argument('--learning_rate', default=1e-4, type=float, help='learning rate')
-    parser.add_argument('--num_workers', default=4, type=int, help='dataloader workers')
+    parser.add_argument('--num_workers', default=16, type=int, help='dataloader workers')
     
     # 新增 Warmup 参数
     parser.add_argument('--warmup_epochs', default=2, type=int, help='number of warmup epochs')
@@ -44,8 +44,8 @@ if __name__ == '__main__':
     parser.add_argument('--dataset_root', default='./dataset', type=str, help='dataset root')
     parser.add_argument('--output_dir', default='checkpoints', type=str, help='output directory')
 
-    parser.add_argument('--l_coord', default=5., type=float, help='hyper parameter for localization loss')
-    parser.add_argument('--l_noobj', default=0.5, type=float, help='hyper parameter for no object loss')
+    parser.add_argument('--l_coord', default=3., type=float, help='hyper parameter for localization loss')
+    parser.add_argument('--l_noobj', default=0.1, type=float, help='hyper parameter for no object loss')
     parser.add_argument('--image_size', default=448, type=int, help='image size')
     
     args = parser.parse_args()
