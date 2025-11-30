@@ -118,7 +118,7 @@ if __name__ == '__main__':
     parser.add_argument('--split', default='val', type=str, help="dataset split in ['val', 'test']")
     parser.add_argument('--model_path', default="./checkpoints/ad_detector_best.pth", help='Pretrained Model Path')
     parser.add_argument('--output_file', default="./result.pkl", help='PKL for evaluation')
-    parser.add_argument('--pos_threshold', default=0.3, type=float, help='Confidence threshold for positive prediction')
+    parser.add_argument('--pos_threshold', default=0.1, type=float, help='Confidence threshold for positive prediction')
     parser.add_argument('--nms_threshold', default=0.5, type=float, help='Threshold for non maximum suppression')
     parser.add_argument('--image_size', default=448, type=int, help='image size')
     args = parser.parse_args()

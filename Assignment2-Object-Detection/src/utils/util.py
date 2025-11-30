@@ -1,3 +1,4 @@
+import os
 import torch
 import cv2
 import numpy as np
@@ -158,5 +159,6 @@ def inference(args, model, img_path):
         cls_index = int(cls_index)  # convert LongTensor to int
         conf = confidences[i]
         conf = float(conf)
-        results.append([(x1, y1), (x2, y2), CAR_CLASSES[cls_index], img_path.split('/')[-1], conf])
+        image_id = os.path.basename(img_path)
+        results.append([(x1, y1), (x2, y2), CAR_CLASSES[cls_index], image_id, conf])
     return results
